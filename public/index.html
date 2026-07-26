@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>PvP Arena Deluxe</title>
+  <title>PvP Arena Ultimate Deluxe</title>
   <script src="/socket.io/socket.io.js"></script>
   <style>
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; background: radial-gradient(circle, #1a252f 0%, #0d1117 100%); color: white; margin: 0; padding: 10px; }
@@ -20,14 +20,8 @@
 
     .unit {
       position: absolute; width: 100px; height: 100px; display: flex; flex-direction: column;
-      align-items: center; justify-content: center; font-size: 45px;
+      align-items: center; justify-content: center; font-size: 42px;
       transition: left 0.4s ease-in-out, top 0.4s ease-in-out; z-index: 10;
-      animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-    
-    @keyframes popIn {
-      0% { transform: scale(0); opacity: 0; }
-      100% { transform: scale(1); opacity: 1; }
     }
 
     .hp-bar-container { width: 65px; height: 6px; background: rgba(0,0,0,0.6); border-radius: 3px; overflow: hidden; margin-top: -2px; border: 1px solid rgba(255,255,255,0.2); }
@@ -35,21 +29,33 @@
     .hp-text { font-size: 10px; font-weight: bold; color: #fff; text-shadow: 1px 1px 2px black; margin-top: 1px; }
 
     .projectile { position: absolute; width: 14px; height: 14px; background: #f1c40f; border-radius: 50%; z-index: 15; box-shadow: 0 0 8px #f1c40f; transition: left 0.25s linear; }
+    
+    .floating-text {
+      position: absolute; font-size: 12px; font-weight: bold; z-index: 25; text-shadow: 1px 1px 2px black;
+      animation: floatUp 0.8s ease-out forwards;
+    }
+    @keyframes floatUp {
+      0% { transform: translateY(0); opacity: 1; }
+      100% { transform: translateY(-30px); opacity: 0; }
+    }
 
     .click-grid { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: grid; grid-template-columns: repeat(8, 100px); grid-template-rows: repeat(5, 100px); z-index: 20; }
     .click-cell { width: 100px; height: 100px; cursor: pointer; transition: background 0.2s; }
     .click-cell:hover { background: rgba(255, 255, 255, 0.25); box-shadow: inset 0 0 10px rgba(255,255,255,0.4); }
 
-    .panel { background: rgba(44, 62, 80, 0.9); padding: 15px; border-radius: 10px; margin-bottom: 10px; border: 1px solid #4e6d8c; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
-    .menu-bar { display: flex; justify-content: center; gap: 12px; margin-top: 10px; }
-    .menu-btn { padding: 12px 20px; background: #34495e; border: 2px solid #7f8c8d; border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: bold; color: white; transition: all 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.2); }
+    .panel { background: rgba(44, 62, 80, 0.95); padding: 20px; border-radius: 12px; margin-bottom: 10px; border: 1px solid #4e6d8c; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+    .menu-bar { display: flex; justify-content: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+    .menu-btn { padding: 12px 18px; background: #34495e; border: 2px solid #7f8c8d; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold; color: white; transition: all 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.2); }
     .menu-btn:hover { transform: translateY(-2px); border-color: #f1c40f; }
     .menu-btn.selected { border-color: #e74c3c; background: #d35400; box-shadow: 0 0 10px rgba(211, 84, 0, 0.6); }
     
-    .player-status { padding: 12px; border-radius: 8px; background: #415b76; font-weight: bold; margin: 10px 0; font-size: 16px; letter-spacing: 0.5px; }
+    .settings-group { display: flex; justify-content: space-between; align-items: center; margin: 10px 0; background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 6px; }
+    .settings-group input { width: 80px; padding: 6px; text-align: center; font-weight: bold; border-radius: 4px; border: 1px solid #7f8c8d; background: #2c3e50; color: white; }
+
+    .player-status { padding: 12px; border-radius: 8px; background: #415b76; font-weight: bold; margin: 10px 0; font-size: 16px; }
     .ready-yes { background: #27ae60 !important; color: white; box-shadow: 0 0 15px rgba(39, 174, 96, 0.6); }
 
-    #gameover-screen {
+    .overlay-screen {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85);
       color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; backdrop-filter: blur(5px);
     }
@@ -57,37 +63,69 @@
 </head>
 <body>
   <div id="app">
-    <h1>🌱 PvZ Arena: Ultimate Clash 🧟</h1>
+    <h1>🌱 PvZ Arena: Ultimate Custom Edition 🧟</h1>
     
-    <div id="role-select" class="panel">
-      <h3>Choose Your Faction</h3>
-      <button class="menu-btn" onclick="joinRole('Plants')">🌿 Play as Plants</button>
-      <button class="menu-btn" onclick="joinRole('Zombies')">🧟 Play as Zombies</button>
+    <!-- MAIN MENU -->
+    <div id="main-menu" class="panel">
+      <h2>Main Menu</h2>
+      <button class="menu-btn selected" style="font-size: 18px; padding: 15px 30px;" onclick="goToLobby()">Play Game</button>
+      
+      <div style="margin-top: 20px; text-align: left; max-width: 450px; margin-left: auto; margin-right: auto;">
+        <h3>Match Settings</h3>
+        <div class="settings-group">
+          <label>Starting Currency:</label>
+          <input type="number" id="setting-start" value="100" onchange="saveSettings()">
+        </div>
+        <div class="settings-group">
+          <label>Currency Gain Amount:</label>
+          <input type="number" id="setting-amount" value="10" onchange="saveSettings()">
+        </div>
+        <div class="settings-group">
+          <label>Kill Reward Bounty:</label>
+          <input type="number" id="setting-kill" value="15" onchange="saveSettings()">
+        </div>
+      </div>
     </div>
 
+    <!-- LOBBY -->
     <div id="lobby" class="hidden panel">
       <h2>Battle Lobby</h2>
       <div id="p1-status" class="player-status">Plants (P1): Waiting for player...</div>
       <div id="p2-status" class="player-status">Zombies (P2): Waiting for player...</div>
       <button class="menu-btn selected" style="margin-top: 15px; font-size: 18px;" onclick="setReady()">I'm Ready to Fight!</button>
+      <br><br>
+      <button class="menu-btn" onclick="exitToMenu()">Back to Main Menu</button>
     </div>
 
+    <!-- GAME BOARD -->
     <div id="game" class="hidden">
-      <div class="panel">
-        <p style="font-size: 18px; margin: 5px 0;">
-          ☀️ <strong>Sun:</strong> <span id="sun-count" style="color:#f1c40f;">0</span> &nbsp;|&nbsp; 
-          🧠 <strong>Brains:</strong> <span id="brains-count" style="color:#e74c3c;">0</span>
-        </p>
-        
-        <div id="plants-menu" class="menu-bar hidden">
-          <button id="btn-peashooter" class="menu-btn selected" onclick="selectUnit('peashooter')">🌱 Peashooter <br><small>Cost: 25</small></button>
-          <button id="btn-wallnut" class="menu-btn" onclick="selectUnit('wallnut')">🥔 Wall-nut <br><small>Cost: 50</small></button>
+      <div class="panel" style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <p style="font-size: 16px; margin: 0;">
+            ☀️ <strong>Sun:</strong> <span id="sun-count" style="color:#f1c40f;">0</span> &nbsp;|&nbsp; 
+            🧠 <strong>Brains:</strong> <span id="brains-count" style="color:#e74c3c;">0</span>
+          </p>
         </div>
+        <div>
+          <button class="menu-btn" onclick="togglePause()">⏸ Pause</button>
+          <button class="menu-btn" onclick="exitToMenu()" style="border-color: #e74c3c;">🚪 Exit</button>
+        </div>
+      </div>
 
-        <div id="zombies-menu" class="menu-bar hidden">
-          <button id="btn-zombie" class="menu-btn selected" onclick="selectUnit('zombie')">🧟 Basic Zombie <br><small>Cost: 25</small></button>
-          <button id="btn-tank" class="menu-btn" onclick="selectUnit('tank')">👹 Tank Zombie <br><small>Cost: 50</small></button>
-        </div>
+      <!-- PLANTS MENU -->
+      <div id="plants-menu" class="menu-bar hidden panel">
+        <button id="btn-peashooter" class="menu-btn selected" onclick="selectUnit('peashooter')">🌱 Peashooter <br><small>Cost: 25</small></button>
+        <button id="btn-wallnut" class="menu-btn" onclick="selectUnit('wallnut')">🥔 Wall-nut <br><small>Cost: 50</small></button>
+        <button id="btn-sunflower" class="menu-btn" onclick="selectUnit('sunflower')">🌻 Sunflower <br><small>Cost: 25 (Extra Sun)</small></button>
+        <button id="btn-chili" class="menu-btn" onclick="selectUnit('chili')">🌶️ Hot Chili <br><small>Cost: 75 (Bomb)</small></button>
+      </div>
+
+      <!-- ZOMBIES MENU -->
+      <div id="zombies-menu" class="menu-bar hidden panel">
+        <button id="btn-zombie" class="menu-btn selected" onclick="selectUnit('zombie')">🧟 Basic Zombie <br><small>Cost: 25</small></button>
+        <button id="btn-tank" class="menu-btn" onclick="selectUnit('tank')">👹 Tank Zombie <br><small>Cost: 50</small></button>
+        <button id="btn-runner" class="menu-btn" onclick="selectUnit('runner')">🏃 Runner Zombie <br><small>Cost: 30 (Fast)</small></button>
+        <button id="btn-miner" class="menu-btn" onclick="selectUnit('miner')">⛏️ Miner Zombie <br><small>Cost: 60 (Jumps)</small></button>
       </div>
 
       <div id="board-container">
@@ -97,9 +135,18 @@
         <div id="units-layer"></div>
         <div class="click-grid" id="click-grid"></div>
         
-        <div id="gameover-screen" class="hidden">
+        <!-- PAUSE SCREEN -->
+        <div id="pause-screen" class="hidden overlay-screen">
+          <h1>Game Paused</h1>
+          <button class="menu-btn selected" onclick="togglePause()" style="margin-bottom: 10px;">Resume Game</button>
+          <button class="menu-btn" onclick="exitToMenu()">Quit to Menu</button>
+        </div>
+
+        <!-- GAMEOVER SCREEN -->
+        <div id="gameover-screen" class="hidden overlay-screen">
           <h1 id="winner-text" style="font-size: 42px; margin-bottom: 20px; text-shadow: 0 0 10px rgba(255,255,255,0.5);"></h1>
-          <button class="menu-btn selected" onclick="resetGame()">Play Again</button>
+          <button class="menu-btn selected" onclick="resetGame()" style="margin-bottom: 10px;">Play Again</button>
+          <button class="menu-btn" onclick="exitToMenu()">Main Menu</button>
         </div>
       </div>
     </div>
@@ -110,7 +157,6 @@
     let myRole = '';
     let selectedUnit = '';
 
-    // Simple Web Audio API Sound Synthesizer (No external asset links required)
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     function playSound(type) {
       if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -118,8 +164,8 @@
       let gain = audioCtx.createGain();
       osc.connect(gain);
       gain.connect(audioCtx.destination);
-
       let now = audioCtx.currentTime;
+      
       if (type === 'spawn') {
         osc.type = 'sine';
         osc.frequency.setValueAtTime(300, now);
@@ -135,6 +181,29 @@
         gain.gain.linearRampToValueAtTime(0, now + 0.08);
         osc.start(now); osc.stop(now + 0.08);
       }
+    }
+
+    function saveSettings() {
+      let settings = {
+        startingSun: parseInt(document.getElementById('setting-start').value) || 100,
+        startingBrains: parseInt(document.getElementById('setting-start').value) || 100,
+        generationInterval: 1000,
+        generationAmount: parseInt(document.getElementById('setting-amount').value) || 10,
+        killReward: parseInt(document.getElementById('setting-kill').value) || 15
+      };
+      socket.emit('updateSettings', settings);
+    }
+
+    function goToLobby() {
+      socket.emit('goToLobby');
+    }
+
+    function exitToMenu() {
+      socket.emit('exitGame');
+    }
+
+    function togglePause() {
+      socket.emit('pauseGame');
     }
 
     function joinRole(role) {
@@ -181,23 +250,45 @@
     buildClickGrid();
 
     socket.on('stateUpdate', (state) => {
+      // Manage screens visibility
+      document.getElementById('main-menu').classList.toggle('hidden', state.status !== 'menu');
+      document.getElementById('lobby').classList.toggle('hidden', state.status !== 'lobby');
+      document.getElementById('game').classList.toggle('hidden', state.status === 'menu' || state.status === 'lobby');
+      document.getElementById('pause-screen').classList.toggle('hidden', state.status !== 'paused');
+      document.getElementById('gameover-screen').classList.toggle('hidden', state.status !== 'gameover');
+
       if (state.status === 'lobby') {
+        // Reset role screen content inside lobby view if needed
         let p1El = document.getElementById('p1-status');
         let p2El = document.getElementById('p2-status');
+        
+        // Show role chooser if not joined yet
+        let roleHtml = `
+          <div id="role-select" class="panel">
+            <h3>Choose Your Faction</h3>
+            <button class="menu-btn" onclick="joinRole('Plants')">🌿 Play as Plants</button>
+            <button class="menu-btn" onclick="joinRole('Zombies')">🧟 Play as Zombies</button>
+          </div>
+        `;
+        // Keep lobby container structured cleanly
         if (state.p1.ready) { p1El.innerText = "Plants (P1): READY! ✅"; p1El.classList.add('ready-yes'); }
+        else { p1El.innerText = "Plants (P1): Waiting..."; p1El.classList.remove('ready-yes'); }
+
         if (state.p2.ready) { p2El.innerText = "Zombies (P2): READY! ✅"; p2El.classList.add('ready-yes'); }
+        else { p2El.innerText = "Zombies (P2): Waiting..."; p2El.classList.remove('ready-yes'); }
       }
 
-      if (state.status === 'playing') {
-        document.getElementById('lobby').classList.add('hidden');
-        document.getElementById('game').classList.remove('hidden');
-
+      if (state.status === 'playing' || state.status === 'paused') {
         if (myRole === 'Plants') {
           document.getElementById('plants-menu').classList.remove('hidden');
           document.getElementById('plant-zone').classList.remove('hidden');
+          document.getElementById('zombies-menu').classList.add('hidden');
+          document.getElementById('zombie-zone').classList.add('hidden');
         } else {
           document.getElementById('zombies-menu').classList.remove('hidden');
           document.getElementById('zombie-zone').classList.remove('hidden');
+          document.getElementById('plants-menu').classList.add('hidden');
+          document.getElementById('plant-zone').classList.add('hidden');
         }
 
         document.getElementById('sun-count').innerText = state.sun;
@@ -207,13 +298,13 @@
         if (state.projectiles && state.projectiles.length > 0) {
           drawProjectiles(state.projectiles);
         }
+        if (state.floatingTexts && state.floatingTexts.length > 0) {
+          drawFloatingTexts(state.floatingTexts);
+        }
       }
 
       if (state.status === 'gameover') {
-        document.getElementById('gameover-screen').classList.remove('hidden');
         document.getElementById('winner-text').innerText = "🏆 " + state.winner;
-      } else {
-        document.getElementById('gameover-screen').classList.add('hidden');
       }
     });
 
@@ -227,7 +318,7 @@
       });
 
       serverUnits.forEach(unit => {
-        let maxHp = unit.name === 'wallnut' ? 10 : (unit.name === 'tank' ? 8 : (unit.name === 'peashooter' ? 3 : 4));
+        let maxHp = unit.maxHp || 5;
         let hpPercent = Math.max(0, (unit.hp / maxHp) * 100);
 
         let el = document.getElementById('unit-' + unit.id);
@@ -255,7 +346,6 @@
           el.appendChild(hpContainer);
           el.appendChild(hpText);
           layer.appendChild(el);
-          playSound('spawn');
         }
 
         document.getElementById('hp-fill-' + unit.id).style.width = hpPercent + '%';
@@ -283,6 +373,24 @@
         setTimeout(() => { 
           if (dot.parentNode) dot.parentNode.removeChild(dot); 
         }, 280);
+      });
+    }
+
+    function drawFloatingTexts(texts) {
+      const layer = document.getElementById('units-layer');
+      texts.forEach(ft => {
+        let span = document.createElement('div');
+        span.className = 'floating-text';
+        span.innerText = ft.text;
+        span.style.color = ft.color;
+        // Position on top left of the killed unit cell
+        span.style.left = (ft.x * 100 + 10) + 'px';
+        span.style.top = (ft.y * 100 + 10) + 'px';
+        layer.appendChild(span);
+
+        setTimeout(() => {
+          if (span.parentNode) span.parentNode.removeChild(span);
+        }, 800);
       });
     }
   </script>
