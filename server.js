@@ -14,6 +14,7 @@ let defaultSettings = {
   generationInterval: 1000,
   generationAmount: 10,
   killReward: 15,
+  matchDuration: 180, // in seconds
   icons: {
     peashooter: '🌱',
     wallnut: '🥔',
@@ -37,6 +38,8 @@ let gameState = {
   board: [],
   projectiles: [],
   floatingTexts: [],
+  explosions: [],
+  chatMessages: [],
   startTime: 0
 };
 
@@ -45,7 +48,7 @@ function getUnitStats(unitName, icons) {
     'peashooter': { cost: 25, hp: 3, sprite: icons.peashooter || '🌱', type: 'plant' },
     'wallnut':    { cost: 50, hp: 12, sprite: icons.wallnut || '🥔', type: 'plant' },
     'sunflower':  { cost: 25, hp: 2, sprite: icons.sunflower || '🌻', type: 'plant', special: 'sun' },
-    'chili':      { cost: 75, hp: 1, sprite: icons.chili || '🌶️', type: 'plant', special: 'bomb' },
+    'chili':      { cost: 75, hp: 1, sprite: icons.chili || '🌶️', type: 'plant', special: 'bomb', fuse: 2 },
     
     'zombie':     { cost: 25, hp: 4, sprite: icons.zombie || '🧟', type: 'zombie' },
     'tank':       { cost: 50, hp: 10, sprite: icons.tank || '👹', type: 'zombie' },
@@ -81,12 +84,8 @@ io.on('connection', (socket) => {
   });
 
   socket.on('join', (data) => {
-    if (data.role === 'Plants') {
-      gameState.p1.name = data.name || 'Plants Player';
-    }
-    if (data.role === 'Zombies') {
-      gameState.p2.name = data.name || 'Zombies Player';
-    }
+    if (data.role === 'Plants') gameState.p1.name = data.name || 'Plants Player';
+    if (data.role === 'Zombies') gameState.p2.name = data.name || 'Zombies Player';
     io.emit('stateUpdate', gameState);
   });
 
@@ -107,6 +106,18 @@ io.on('connection', (socket) => {
     io.emit('stateUpdate', gameState);
   });
 
+  socket.on('sendChat', (data) => {
+    let senderName = data.role === 'Plants' ? gameState.p1.name : gameState.p2.name;
+    gameState.chatMessages.push({
+      id: Date.now() + Math.random(),
+      sender: senderName || data.role,
+      role: data.role,
+      text: data.text
+    });
+    if (gameState.chatMessages.length > 30) gameState.chatMessages.shift();
+    io.emit('stateUpdate', gameState);
+  });
+
   socket.on('exitGame', () => {
     gameState = {
       status: 'menu',
@@ -119,6 +130,8 @@ io.on('connection', (socket) => {
       board: [],
       projectiles: [],
       floatingTexts: [],
+      explosions: [],
+      chatMessages: [],
       startTime: 0
     };
     io.emit('stateUpdate', gameState);
@@ -142,24 +155,12 @@ io.on('connection', (socket) => {
       name: data.unitType,
       type: stats.type,
       special: stats.special || null,
+      fuse: stats.fuse || 0,
       cooldown: 0
     };
 
     if (data.role === 'Plants' && gameState.sun >= stats.cost && data.x < 4) {
       gameState.sun -= stats.cost;
-      
-      if (newUnit.special === 'bomb') {
-        let targets = gameState.board.filter(z => z.type === 'zombie' && z.y === newUnit.y && z.x >= newUnit.x && z.x <= newUnit.x + 1);
-        targets.forEach(t => {
-          t.hp -= 10;
-          if (t.hp <= 0) {
-            gameState.sun += gameState.settings.killReward;
-            gameState.floatingTexts.push({ id: Date.now() + Math.random(), x: t.x, y: t.y, text: `+${gameState.settings.killReward} Sun`, color: '#f1c40f' });
-          }
-        });
-        return; 
-      }
-
       gameState.board.push(newUnit);
     } else if (data.role === 'Zombies' && gameState.brains >= stats.cost && data.x > 3) {
       gameState.brains -= stats.cost;
@@ -178,6 +179,8 @@ io.on('connection', (socket) => {
     gameState.board = [];
     gameState.projectiles = [];
     gameState.floatingTexts = [];
+    gameState.explosions = [];
+    gameState.chatMessages = [];
     io.emit('stateUpdate', gameState);
   });
 });
@@ -186,8 +189,10 @@ setInterval(() => {
   if (gameState.status !== 'playing') return;
   gameState.projectiles = [];
   gameState.floatingTexts = [];
+  gameState.explosions = [];
 
-  if (Date.now() - gameState.startTime > 180000) {
+  let matchDurationMs = (gameState.settings.matchDuration || 180) * 1000;
+  if (Date.now() - gameState.startTime > matchDurationMs) {
     gameState.status = 'gameover';
     gameState.winner = 'Plants (Survived!)';
     io.emit('stateUpdate', gameState);
@@ -205,6 +210,25 @@ setInterval(() => {
       gameState.sun += 10;
       gameState.floatingTexts.push({ id: Date.now() + Math.random(), x: p.x, y: p.y, text: `+10 Sun 🌻`, color: '#f1c40f' });
     }
+    
+    if (p.special === 'bomb') {
+      if (p.fuse > 0) {
+        p.fuse--;
+        gameState.floatingTexts.push({ id: Date.now() + Math.random(), x: p.x, y: p.y, text: `Fuse: ${p.fuse+1}`, color: '#e67e22' });
+      } else {
+        gameState.explosions.push({ id: Date.now() + Math.random(), x: p.x, y: p.y });
+        let targets = zombies.filter(z => z.y === p.y && z.x >= p.x && z.x <= p.x + 1);
+        targets.forEach(t => {
+          t.hp -= 15;
+          if (t.hp <= 0) {
+            gameState.sun += gameState.settings.killReward;
+            gameState.floatingTexts.push({ id: Date.now() + Math.random(), x: t.x, y: t.y, text: `+${gameState.settings.killReward} Sun`, color: '#f1c40f' });
+          }
+        });
+        p.hp = 0;
+      }
+    }
+
     if (p.name === 'peashooter') {
       let targets = zombies.filter(z => z.y === p.y && z.x > p.x).sort((a, b) => a.x - b.x);
       if (targets.length > 0) {
