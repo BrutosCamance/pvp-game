@@ -16,6 +16,7 @@ let gameState = {
   sun: 100,
   brains: 100,
   board: [],
+  projectiles: [],
   startTime: 0
 };
 
@@ -76,7 +77,7 @@ io.on('connection', (socket) => {
       status: 'lobby', winner: null,
       p1: { name: 'Player 1', ready: false },
       p2: { name: 'Player 2', ready: false },
-      sun: 100, brains: 100, board: [], startTime: 0
+      sun: 100, brains: 100, board: [], projectiles: [], startTime: 0
     };
     io.emit('stateUpdate', gameState);
   });
@@ -84,6 +85,7 @@ io.on('connection', (socket) => {
 
 setInterval(() => {
   if (gameState.status !== 'playing') return;
+  gameState.projectiles = []; // Clear old tick projectiles
 
   if (Date.now() - gameState.startTime > 120000) {
     gameState.status = 'gameover';
@@ -100,10 +102,11 @@ setInterval(() => {
 
   plants.forEach(p => {
     if (p.name === 'peashooter') {
-      let target = zombies.find(z => z.y === p.y && z.x > p.x);
-      if (target) {
-        target.hp -= 1;
-        if (target.hp <= 0) gameState.sun += 15;
+      let targets = zombies.filter(z => z.y === p.y && z.x > p.x).sort((a, b) => a.x - b.x);
+      if (targets.length > 0) {
+        targets[0].hp -= 1;
+        gameState.projectiles.push({ x: p.x, y: p.y, targetX: targets[0].x });
+        if (targets[0].hp <= 0) gameState.sun += 15;
       }
     }
   });
