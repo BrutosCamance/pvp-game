@@ -87,12 +87,20 @@
       </div>
     </div>
 
-    <!-- LOBBY -->
+    <!-- LOBBY & FACTION SELECT -->
     <div id="lobby" class="hidden panel">
       <h2>Battle Lobby</h2>
+      
+      <div id="role-select-box" style="margin: 15px 0;">
+        <h3>Choose Your Faction</h3>
+        <button class="menu-btn" id="btn-faction-plants" onclick="joinRole('Plants')">🌿 Play as Plants</button>
+        <button class="menu-btn" id="btn-faction-zombies" onclick="joinRole('Zombies')">🧟 Play as Zombies</button>
+      </div>
+
       <div id="p1-status" class="player-status">Plants (P1): Waiting for player...</div>
       <div id="p2-status" class="player-status">Zombies (P2): Waiting for player...</div>
-      <button class="menu-btn selected" style="margin-top: 15px; font-size: 18px;" onclick="setReady()">I'm Ready to Fight!</button>
+      
+      <button id="ready-btn" class="menu-btn selected hidden" style="margin-top: 15px; font-size: 18px;" onclick="setReady()">I'm Ready to Fight!</button>
       <br><br>
       <button class="menu-btn" onclick="exitToMenu()">Back to Main Menu</button>
     </div>
@@ -199,6 +207,7 @@
     }
 
     function exitToMenu() {
+      myRole = '';
       socket.emit('exitGame');
     }
 
@@ -210,8 +219,11 @@
       myRole = role;
       selectedUnit = role === 'Plants' ? 'peashooter' : 'zombie';
       socket.emit('join', role);
-      document.getElementById('role-select').classList.add('hidden');
-      document.getElementById('lobby').classList.remove('hidden');
+      
+      // Highlight chosen button
+      document.getElementById('btn-faction-plants').classList.toggle('selected', role === 'Plants');
+      document.getElementById('btn-faction-zombies').classList.toggle('selected', role === 'Zombies');
+      document.getElementById('ready-btn').classList.remove('hidden');
       playSound('spawn');
     }
 
@@ -222,7 +234,7 @@
 
     function selectUnit(unitName) {
       selectedUnit = unitName;
-      document.querySelectorAll('.menu-btn').forEach(btn => btn.classList.remove('selected'));
+      document.querySelectorAll('.menu-bar .menu-btn').forEach(btn => btn.classList.remove('selected'));
       document.getElementById('btn-' + unitName).classList.add('selected');
       playSound('spawn');
     }
@@ -250,7 +262,6 @@
     buildClickGrid();
 
     socket.on('stateUpdate', (state) => {
-      // Manage screens visibility
       document.getElementById('main-menu').classList.toggle('hidden', state.status !== 'menu');
       document.getElementById('lobby').classList.toggle('hidden', state.status !== 'lobby');
       document.getElementById('game').classList.toggle('hidden', state.status === 'menu' || state.status === 'lobby');
@@ -258,19 +269,9 @@
       document.getElementById('gameover-screen').classList.toggle('hidden', state.status !== 'gameover');
 
       if (state.status === 'lobby') {
-        // Reset role screen content inside lobby view if needed
         let p1El = document.getElementById('p1-status');
         let p2El = document.getElementById('p2-status');
         
-        // Show role chooser if not joined yet
-        let roleHtml = `
-          <div id="role-select" class="panel">
-            <h3>Choose Your Faction</h3>
-            <button class="menu-btn" onclick="joinRole('Plants')">🌿 Play as Plants</button>
-            <button class="menu-btn" onclick="joinRole('Zombies')">🧟 Play as Zombies</button>
-          </div>
-        `;
-        // Keep lobby container structured cleanly
         if (state.p1.ready) { p1El.innerText = "Plants (P1): READY! ✅"; p1El.classList.add('ready-yes'); }
         else { p1El.innerText = "Plants (P1): Waiting..."; p1El.classList.remove('ready-yes'); }
 
@@ -383,7 +384,6 @@
         span.className = 'floating-text';
         span.innerText = ft.text;
         span.style.color = ft.color;
-        // Position on top left of the killed unit cell
         span.style.left = (ft.x * 100 + 10) + 'px';
         span.style.top = (ft.y * 100 + 10) + 'px';
         layer.appendChild(span);
