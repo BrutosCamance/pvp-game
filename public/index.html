@@ -24,13 +24,19 @@
     .unit {
       position: absolute; width: 100px; height: 100px; display: flex; flex-direction: column;
       align-items: center; justify-content: center; font-size: 38px;
-      /* Smooth sliding glide transition for units */
       transition: left 0.8s cubic-bezier(0.25, 1, 0.5, 1), top 0.8s cubic-bezier(0.25, 1, 0.5, 1);
       z-index: 10;
     }
     
     .menu-btn img { width: 40px; height: 40px; object-fit: contain; display: inline-block; vertical-align: middle; }
-    .unit img { width: 60px; height: 60px; object-fit: contain; display: inline-block; vertical-align: middle; }
+    .unit img { 
+      width: 60px; 
+      height: 60px; 
+      object-fit: contain; 
+      display: inline-block; 
+      vertical-align: middle;
+      filter: drop-shadow(1px 1px 2px rgba(0,0,0,0.5));
+    }
 
     .hp-bar-container { width: 65px; height: 6px; background: rgba(0,0,0,0.6); border-radius: 3px; overflow: hidden; margin-top: -2px; border: 1px solid rgba(255,255,255,0.2); }
     .hp-fill { height: 100%; background: #2ecc71; width: 100%; transition: width 0.3s; }
@@ -74,7 +80,6 @@
     .player-status { padding: 12px; border-radius: 8px; background: #415b76; font-weight: bold; margin: 10px 0; font-size: 16px; }
     .ready-yes { background: #27ae60 !important; color: white; box-shadow: 0 0 15px rgba(39, 174, 96, 0.6); }
 
-    /* Live Chat Styles */
     .chat-panel { width: 280px; height: 602px; display: flex; flex-direction: column; background: rgba(30, 42, 56, 0.95); border: 1px solid #4e6d8c; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); overflow: hidden; text-align: left; }
     .chat-header { padding: 12px; background: #243342; font-weight: bold; border-bottom: 1px solid #4e6d8c; font-size: 14px; text-align: center; }
     .chat-messages { flex: 1; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
@@ -96,7 +101,7 @@
 </head>
 <body>
   <div id="app">
-    <h1>🌱 PvZ Arena: Ultimate Temu Edition BY LAWNRECEz🧟</h1>
+    <h1>🌱 PvZ Arena: Ultimate Temu Edition | by Lawrence 🧟</h1>
     
     <!-- MAIN MENU -->
     <div id="main-menu" class="panel">
