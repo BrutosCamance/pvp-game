@@ -14,7 +14,7 @@ let defaultSettings = {
   generationInterval: 1000,
   generationAmount: 10,
   killReward: 15,
-  matchDuration: 180, // in seconds
+  matchDuration: 180,
   icons: {
     peashooter: '🌱',
     wallnut: '🥔',
