@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Real-Time PvP Clash</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    body { font-family: sans-serif; text-align: center; background: #2c3e50; color: white; margin: 0; padding: 10px; }
+    #app { max-width: 800px; margin: 0 auto; }
+    .hidden { display: none !important; }
+    
+    #board-container {
+      position: relative; width: 800px; height: 500px; background: #27ae60;
+      border: 4px solid #2ecc71; margin: 20px auto; overflow: hidden;
+      background-image: linear-gradient(#2ecc71 1px, transparent 1px), linear-gradient(90deg, #2ecc71 1px, transparent 1px);
+      background-size: 100px 100px; 
+    }
+
+    #plant-zone { position: absolute; left: 0; width: 400px; height: 500px; background: rgba(46, 204, 113, 0.3); z-index: 1; pointer-events: none; }
+    #zombie-zone { position: absolute; right: 0; width: 400px; height: 500px; background: rgba(142, 68, 173, 0.3); z-index: 1; pointer-events: none; }
+
+    .unit {
+      position: absolute; width: 100px; height: 100px; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; font-size: 50px;
+      transition: left 0.3s linear, top 0.3s linear; z-index: 10;
+    }
+    .hp-bar { font-size: 14px; background: rgba(0,0,0,0.8); padding: 2px 6px; border-radius: 4px; margin-top: -5px; font-weight: bold; }
+
+    .click-grid { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: grid; grid-template-columns: repeat(8, 100px); grid-template-rows: repeat(5, 100px); z-index: 20; }
+    .click-cell { width: 100px; height: 100px; cursor: pointer; }
+    .click-cell:hover { background: rgba(255,255,255,0.4); }
+
+    .panel { background: #34495e; padding: 15px; border-radius: 8px; margin-bottom: 10px; }
+    .menu-bar { display: flex; justify-content: center; gap: 10px; margin-top: 10px; }
+    .menu-btn { padding: 10px 15px; background: #ecf0f1; border: 2px solid #bdc3c7; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold; color: #2c3e50; }
+    .menu-btn.selected { border-color: #e74c3c; background: #f1c40f; }
+    
+    .player-status { padding: 10px; border-radius: 5px; background: #7f8c8d; font-weight: bold; margin: 10px 0; }
+    .ready-yes { background: #2ecc71; color: white; }
+
+    #gameover-screen {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85);
+      color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <h1>Real-Time PvP Clash</h1>
+    
+    <div id="role-select" class="panel">
+      <h3>Select your Role</h3>
+      <button class="menu-btn" onclick="joinRole('Plants')">Join as Plants</button>
+      <button class="menu-btn" onclick="joinRole('Zombies')">Join as Zombies</button>
+    </div>
+
+    <div id="lobby" class="hidden panel">
+      <h2>Lobby</h2>
+      <div id="p1-status" class="player-status">Plants (P1): Waiting...</div>
+      <div id="p2-status" class="player-status">Zombies (P2): Waiting...</div>
+      <button class="menu-btn selected" style="margin-top: 15px;" onclick="setReady()">Click Here When Ready</button>
+    </div>
+
+    <div id="game" class="hidden">
+      <div class="panel">
+        <p>
+          <strong>Sun:</strong> <span id="sun-count" style="color:#f1c40f;">0</span> | 
+          <strong>Brains:</strong> <span id="brains-count" style="color:#e74c3c;">0</span>
+        </p>
+        
+        <div id="plants-menu" class="menu-bar hidden">
+          <button id="btn-peashooter" class="menu-btn selected" onclick="selectUnit('peashooter')">🌱 Peashooter (25)</button>
+          <button id="btn-wallnut" class="menu-btn" onclick="selectUnit('wallnut')">🥔 Wall-nut (50)</button>
+        </div>
+
+        <div id="zombies-menu" class="menu-bar hidden">
+          <button id="btn-zombie" class="menu-btn selected" onclick="selectUnit('zombie')">🧟 Basic Zombie (25)</button>
+          <button id="btn-tank" class="menu-btn" onclick="selectUnit('tank')">👹 Tank Zombie (50)</button>
+        </div>
+      </div>
+
+      <div id="board-container">
+        <div id="plant-zone" class="hidden"></div>
+        <div id="zombie-zone" class="hidden"></div>
+
+        <div id="units-layer"></div>
+        <div class="click-grid" id="click-grid"></div>
+        
+        <div id="gameover-screen" class="hidden">
+          <h1 id="winner-text" style="font-size: 40px; margin-bottom: 20px;"></h1>
+          <button class="menu-btn selected" onclick="resetGame()">Play Again</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const socket = io();
+    let myRole = '';
+    let selectedUnit = '';
+
+    function joinRole(role) {
+      myRole = role;
+      selectedUnit = role === 'Plants' ? 'peashooter' : 'zombie';
+      socket.emit('join', role);
+      document.getElementById('role-select').classList.add('hidden');
+      document.getElementById('lobby').classList.remove('hidden');
+    }
+
+    function setReady() {
+      socket.emit('ready', myRole);
+    }
+
+    function selectUnit(unitName) {
+      selectedUnit = unitName;
+      document.querySelectorAll('.menu-btn').forEach(btn => btn.classList.remove('selected'));
+      document.getElementById('btn-' + unitName).classList.add('selected');
+    }
+
+    function attemptSpawn(x, y) {
+      socket.emit('spawn', { role: myRole, x: x, y: y, unitType: selectedUnit });
+    }
+
+    function resetGame() {
+      socket.emit('reset');
+    }
+
+    function buildClickGrid() {
+      const grid = document.getElementById('click-grid');
+      grid.innerHTML = '';
+      for (let y = 0; y < 5; y++) {
+        for (let x = 0; x < 8; x++) {
+          let cell = document.createElement('div');
+          cell.className = 'click-cell';
+          cell.onclick = () => attemptSpawn(x, y);
+          grid.appendChild(cell);
+        }
+      }
+    }
+    buildClickGrid();
+
+    socket.on('stateUpdate', (state) => {
+      if (state.status === 'lobby') {
+        let p1El = document.getElementById('p1-status');
+        let p2El = document.getElementById('p2-status');
+        if (state.p1.ready) { p1El.innerText = "Plants (P1): READY!"; p1El.classList.add('ready-yes'); }
+        if (state.p2.ready) { p2El.innerText = "Zombies (P2): READY!"; p2El.classList.add('ready-yes'); }
+      }
+
+      if (state.status === 'playing') {
+        document.getElementById('lobby').classList.add('hidden');
+        document.getElementById('game').classList.remove('hidden');
+
+        if (myRole === 'Plants') {
+          document.getElementById('plants-menu').classList.remove('hidden');
+          document.getElementById('plant-zone').classList.remove('hidden');
+        } else {
+          document.getElementById('zombies-menu').classList.remove('hidden');
+          document.getElementById('zombie-zone').classList.remove('hidden');
+        }
+
+        document.getElementById('sun-count').innerText = state.sun;
+        document.getElementById('brains-count').innerText = state.brains;
+
+        updateUnits(state.board);
+      }
+
+      if (state.status === 'gameover') {
+        document.getElementById('gameover-screen').classList.remove('hidden');
+        document.getElementById('winner-text').innerText = state.winner;
+      } else {
+        document.getElementById('gameover-screen').classList.add('hidden');
+      }
+    });
+
+    function updateUnits(serverUnits) {
+      const layer = document.getElementById('units-layer');
+      let currentElements = Array.from(layer.children);
+      let serverIds = serverUnits.map(u => 'unit-' + u.id);
+
+      currentElements.forEach(el => {
+        if (!serverIds.includes(el.id)) layer.removeChild(el);
+      });
+
+      serverUnits.forEach(unit => {
+        let el = document.getElementById('unit-' + unit.id);
+        if (!el) {
+          el = document.createElement('div');
+          el.id = 'unit-' + unit.id;
+          el.className = 'unit';
+          
+          let icon = document.createElement('div');
+          icon.innerText = unit.sprite;
+          
+          let hpBar = document.createElement('div');
+          hpBar.className = 'hp-bar';
+          hpBar.id = 'hp-' + unit.id;
+          
+          el.appendChild(icon);
+          el.appendChild(hpBar);
+          layer.appendChild(el);
+        }
+        document.getElementById('hp-' + unit.id).innerText = "HP: " + unit.hp;
+        el.style.left = (unit.x * 100) + 'px';
+        el.style.top = (unit.y * 100) + 'px';
+      });
+    }
+  </script>
+</body>
+</html>
