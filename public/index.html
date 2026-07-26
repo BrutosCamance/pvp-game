@@ -20,9 +20,10 @@
 
     .unit {
       position: absolute; width: 100px; height: 100px; display: flex; flex-direction: column;
-      align-items: center; justify-content: center; font-size: 42px;
+      align-items: center; justify-content: center; font-size: 38px;
       transition: left 0.4s ease-in-out, top 0.4s ease-in-out; z-index: 10;
     }
+    .unit img { width: 50px; height: 50px; object-fit: contain; }
 
     .hp-bar-container { width: 65px; height: 6px; background: rgba(0,0,0,0.6); border-radius: 3px; overflow: hidden; margin-top: -2px; border: 1px solid rgba(255,255,255,0.2); }
     .hp-fill { height: 100%; background: #2ecc71; width: 100%; transition: width 0.3s; }
@@ -31,12 +32,13 @@
     .projectile { position: absolute; width: 14px; height: 14px; background: #f1c40f; border-radius: 50%; z-index: 15; box-shadow: 0 0 8px #f1c40f; transition: left 0.25s linear; }
     
     .floating-text {
-      position: absolute; font-size: 12px; font-weight: bold; z-index: 25; text-shadow: 1px 1px 2px black;
-      animation: floatUp 0.8s ease-out forwards;
+      position: absolute; font-size: 13px; font-weight: bold; z-index: 25; text-shadow: 1px 1px 2px black;
+      animation: floatUp 0.9s ease-out forwards;
     }
     @keyframes floatUp {
-      0% { transform: translateY(0); opacity: 1; }
-      100% { transform: translateY(-30px); opacity: 0; }
+      0% { transform: translateY(0) scale(0.8); opacity: 0; }
+      50% { transform: translateY(-15px) scale(1.2); opacity: 1; }
+      100% { transform: translateY(-35px) scale(1); opacity: 0; }
     }
 
     .click-grid { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: grid; grid-template-columns: repeat(8, 100px); grid-template-rows: repeat(5, 100px); z-index: 20; }
@@ -49,8 +51,8 @@
     .menu-btn:hover { transform: translateY(-2px); border-color: #f1c40f; }
     .menu-btn.selected { border-color: #e74c3c; background: #d35400; box-shadow: 0 0 10px rgba(211, 84, 0, 0.6); }
     
-    .settings-group { display: flex; justify-content: space-between; align-items: center; margin: 10px 0; background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 6px; }
-    .settings-group input { width: 80px; padding: 6px; text-align: center; font-weight: bold; border-radius: 4px; border: 1px solid #7f8c8d; background: #2c3e50; color: white; }
+    .settings-group { display: flex; justify-content: space-between; align-items: center; margin: 8px 0; background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 6px; }
+    .settings-group input { width: 140px; padding: 6px; text-align: center; font-weight: bold; border-radius: 4px; border: 1px solid #7f8c8d; background: #2c3e50; color: white; }
 
     .player-status { padding: 12px; border-radius: 8px; background: #415b76; font-weight: bold; margin: 10px 0; font-size: 16px; }
     .ready-yes { background: #27ae60 !important; color: white; box-shadow: 0 0 15px rgba(39, 174, 96, 0.6); }
@@ -67,22 +69,42 @@
     
     <!-- MAIN MENU -->
     <div id="main-menu" class="panel">
-      <h2>Main Menu</h2>
-      <button class="menu-btn selected" style="font-size: 18px; padding: 15px 30px;" onclick="goToLobby()">Play Game</button>
+      <h2>Main Menu & Customization</h2>
       
-      <div style="margin-top: 20px; text-align: left; max-width: 450px; margin-left: auto; margin-right: auto;">
-        <h3>Match Settings</h3>
-        <div class="settings-group">
-          <label>Starting Currency:</label>
-          <input type="number" id="setting-start" value="100" onchange="saveSettings()">
+      <div style="margin-bottom: 15px;">
+        <label><strong>Your Name:</strong></label>
+        <input type="text" id="main-player-name" value="Player 1" onchange="saveSettings()" style="padding: 6px; border-radius: 4px; background: #2c3e50; color: white; border: 1px solid #7f8c8d; width: 150px; text-align: center;">
+      </div>
+
+      <button class="menu-btn selected" style="font-size: 18px; padding: 12px 30px;" onclick="goToLobby()">Play Game</button>
+      
+      <div style="display: flex; gap: 20px; justify-content: center; margin-top: 20px; flex-wrap: wrap;">
+        <div style="text-align: left; max-width: 380px;">
+          <h3>Match Settings</h3>
+          <div class="settings-group">
+            <label>Starting Currency:</label>
+            <input type="number" id="setting-start" value="100" onchange="saveSettings()">
+          </div>
+          <div class="settings-group">
+            <label>Currency Gain:</label>
+            <input type="number" id="setting-amount" value="10" onchange="saveSettings()">
+          </div>
+          <div class="settings-group">
+            <label>Kill Reward:</label>
+            <input type="number" id="setting-kill" value="15" onchange="saveSettings()">
+          </div>
         </div>
-        <div class="settings-group">
-          <label>Currency Gain Amount:</label>
-          <input type="number" id="setting-amount" value="10" onchange="saveSettings()">
-        </div>
-        <div class="settings-group">
-          <label>Kill Reward Bounty:</label>
-          <input type="number" id="setting-kill" value="15" onchange="saveSettings()">
+
+        <div style="text-align: left; max-width: 380px;">
+          <h3>Custom Icons (Emoji or Image URL)</h3>
+          <div class="settings-group"><label>🌱 Peashooter:</label><input type="text" id="icon-peashooter" value="🌱" onchange="saveSettings()"></div>
+          <div class="settings-group"><label>🥔 Wall-nut:</label><input type="text" id="icon-wallnut" value="🥔" onchange="saveSettings()"></div>
+          <div class="settings-group"><label>🌻 Sunflower:</label><input type="text" id="icon-sunflower" value="🌻" onchange="saveSettings()"></div>
+          <div class="settings-group"><label>🌶️ Hot Chili:</label><input type="text" id="icon-chili" value="🌶️" onchange="saveSettings()"></div>
+          <div class="settings-group"><label>🧟 Basic Zombie:</label><input type="text" id="icon-zombie" value="🧟" onchange="saveSettings()"></div>
+          <div class="settings-group"><label>👹 Tank Zombie:</label><input type="text" id="icon-tank" value="👹" onchange="saveSettings()"></div>
+          <div class="settings-group"><label>🏃 Runner Zombie:</label><input type="text" id="icon-runner" value="🏃" onchange="saveSettings()"></div>
+          <div class="settings-group"><label>⛏️ Miner Zombie:</label><input type="text" id="icon-miner" value="⛏️" onchange="saveSettings()"></div>
         </div>
       </div>
     </div>
@@ -91,14 +113,19 @@
     <div id="lobby" class="hidden panel">
       <h2>Battle Lobby</h2>
       
+      <div style="margin: 10px 0;">
+        <label><strong>Change Name:</strong></label>
+        <input type="text" id="lobby-player-name" value="Player 1" onchange="updatePlayerName()" style="padding: 6px; border-radius: 4px; background: #2c3e50; color: white; border: 1px solid #7f8c8d; width: 150px; text-align: center;">
+      </div>
+
       <div id="role-select-box" style="margin: 15px 0;">
         <h3>Choose Your Faction</h3>
         <button class="menu-btn" id="btn-faction-plants" onclick="joinRole('Plants')">🌿 Play as Plants</button>
         <button class="menu-btn" id="btn-faction-zombies" onclick="joinRole('Zombies')">🧟 Play as Zombies</button>
       </div>
 
-      <div id="p1-status" class="player-status">Plants (P1): Waiting for player...</div>
-      <div id="p2-status" class="player-status">Zombies (P2): Waiting for player...</div>
+      <div id="p1-status" class="player-status">Plants (P1): Waiting...</div>
+      <div id="p2-status" class="player-status">Zombies (P2): Waiting...</div>
       
       <button id="ready-btn" class="menu-btn selected hidden" style="margin-top: 15px; font-size: 18px;" onclick="setReady()">I'm Ready to Fight!</button>
       <br><br>
@@ -122,18 +149,18 @@
 
       <!-- PLANTS MENU -->
       <div id="plants-menu" class="menu-bar hidden panel">
-        <button id="btn-peashooter" class="menu-btn selected" onclick="selectUnit('peashooter')">🌱 Peashooter <br><small>Cost: 25</small></button>
-        <button id="btn-wallnut" class="menu-btn" onclick="selectUnit('wallnut')">🥔 Wall-nut <br><small>Cost: 50</small></button>
-        <button id="btn-sunflower" class="menu-btn" onclick="selectUnit('sunflower')">🌻 Sunflower <br><small>Cost: 25 (Extra Sun)</small></button>
-        <button id="btn-chili" class="menu-btn" onclick="selectUnit('chili')">🌶️ Hot Chili <br><small>Cost: 75 (Bomb)</small></button>
+        <button id="btn-peashooter" class="menu-btn selected" onclick="selectUnit('peashooter')"><span id="lbl-peashooter">🌱</span> Peashooter <br><small>Cost: 25</small></button>
+        <button id="btn-wallnut" class="menu-btn" onclick="selectUnit('wallnut')"><span id="lbl-wallnut">🥔</span> Wall-nut <br><small>Cost: 50</small></button>
+        <button id="btn-sunflower" class="menu-btn" onclick="selectUnit('sunflower')"><span id="lbl-sunflower">🌻</span> Sunflower <br><small>Cost: 25 (Sun Gen)</small></button>
+        <button id="btn-chili" class="menu-btn" onclick="selectUnit('chili')"><span id="lbl-chili">🌶️</span> Hot Chili <br><small>Cost: 75 (Bomb)</small></button>
       </div>
 
       <!-- ZOMBIES MENU -->
       <div id="zombies-menu" class="menu-bar hidden panel">
-        <button id="btn-zombie" class="menu-btn selected" onclick="selectUnit('zombie')">🧟 Basic Zombie <br><small>Cost: 25</small></button>
-        <button id="btn-tank" class="menu-btn" onclick="selectUnit('tank')">👹 Tank Zombie <br><small>Cost: 50</small></button>
-        <button id="btn-runner" class="menu-btn" onclick="selectUnit('runner')">🏃 Runner Zombie <br><small>Cost: 30 (Fast)</small></button>
-        <button id="btn-miner" class="menu-btn" onclick="selectUnit('miner')">⛏️ Miner Zombie <br><small>Cost: 60 (Jumps)</small></button>
+        <button id="btn-zombie" class="menu-btn selected" onclick="selectUnit('zombie')"><span id="lbl-zombie">🧟</span> Basic Zombie <br><small>Cost: 25</small></button>
+        <button id="btn-tank" class="menu-btn" onclick="selectUnit('tank')"><span id="lbl-tank">👹</span> Tank Zombie <br><small>Cost: 50</small></button>
+        <button id="btn-runner" class="menu-btn" onclick="selectUnit('runner')"><span id="lbl-runner">🏃</span> Runner <br><small>Cost: 30 (Fast)</small></button>
+        <button id="btn-miner" class="menu-btn" onclick="selectUnit('miner')"><span id="lbl-miner">⛏️</span> Miner <br><small>Cost: 60 (Jumps)</small></button>
       </div>
 
       <div id="board-container">
@@ -197,9 +224,38 @@
         startingBrains: parseInt(document.getElementById('setting-start').value) || 100,
         generationInterval: 1000,
         generationAmount: parseInt(document.getElementById('setting-amount').value) || 10,
-        killReward: parseInt(document.getElementById('setting-kill').value) || 15
+        killReward: parseInt(document.getElementById('setting-kill').value) || 15,
+        icons: {
+          peashooter: document.getElementById('icon-peashooter').value || '🌱',
+          wallnut: document.getElementById('icon-wallnut').value || '🥔',
+          sunflower: document.getElementById('icon-sunflower').value || '🌻',
+          chili: document.getElementById('icon-chili').value || '🌶️',
+          zombie: document.getElementById('icon-zombie').value || '🧟',
+          tank: document.getElementById('icon-tank').value || '👹',
+          runner: document.getElementById('icon-runner').value || '🏃',
+          miner: document.getElementById('icon-miner').value || '⛏️'
+        }
       };
+
+      // Sync button labels
+      ['peashooter', 'wallnut', 'sunflower', 'chili', 'zombie', 'tank', 'runner', 'miner'].forEach(u => {
+        let lbl = document.getElementById('lbl-' + u);
+        if (lbl) {
+          let val = settings.icons[u];
+          lbl.innerHTML = val.startsWith('http') || val.startsWith('data:') ? `<img src="${val}" style="width:20px;height:20px;vertical-align:middle;">` : val;
+        }
+      });
+
+      let nameVal = document.getElementById('main-player-name').value;
+      document.getElementById('lobby-player-name').value = nameVal;
+
       socket.emit('updateSettings', settings);
+    }
+
+    function updatePlayerName() {
+      let name = document.getElementById('lobby-player-name').value;
+      document.getElementById('main-player-name').value = name;
+      socket.emit('updateNames', { role: myRole, name: name });
     }
 
     function goToLobby() {
@@ -218,9 +274,9 @@
     function joinRole(role) {
       myRole = role;
       selectedUnit = role === 'Plants' ? 'peashooter' : 'zombie';
-      socket.emit('join', role);
+      let name = document.getElementById('lobby-player-name').value;
+      socket.emit('join', { role: role, name: name });
       
-      // Highlight chosen button
       document.getElementById('btn-faction-plants').classList.toggle('selected', role === 'Plants');
       document.getElementById('btn-faction-zombies').classList.toggle('selected', role === 'Zombies');
       document.getElementById('ready-btn').classList.remove('hidden');
@@ -272,11 +328,14 @@
         let p1El = document.getElementById('p1-status');
         let p2El = document.getElementById('p2-status');
         
-        if (state.p1.ready) { p1El.innerText = "Plants (P1): READY! ✅"; p1El.classList.add('ready-yes'); }
-        else { p1El.innerText = "Plants (P1): Waiting..."; p1El.classList.remove('ready-yes'); }
+        let p1Name = state.p1.name || 'Plants (P1)';
+        let p2Name = state.p2.name || 'Zombies (P2)';
 
-        if (state.p2.ready) { p2El.innerText = "Zombies (P2): READY! ✅"; p2El.classList.add('ready-yes'); }
-        else { p2El.innerText = "Zombies (P2): Waiting..."; p2El.classList.remove('ready-yes'); }
+        if (state.p1.ready) { p1El.innerText = `${p1Name}: READY! ✅`; p1El.classList.add('ready-yes'); }
+        else { p1El.innerText = `${p1Name}: Waiting...`; p1El.classList.remove('ready-yes'); }
+
+        if (state.p2.ready) { p2El.innerText = `${p2Name}: READY! ✅`; p2El.classList.add('ready-yes'); }
+        else { p2El.innerText = `${p2Name}: Waiting...`; p2El.classList.remove('ready-yes'); }
       }
 
       if (state.status === 'playing' || state.status === 'paused') {
@@ -329,7 +388,7 @@
           el.className = 'unit';
           
           let icon = document.createElement('div');
-          icon.innerText = unit.sprite;
+          icon.id = 'icon-div-' + unit.id;
           
           let hpContainer = document.createElement('div');
           hpContainer.className = 'hp-bar-container';
@@ -347,6 +406,13 @@
           el.appendChild(hpContainer);
           el.appendChild(hpText);
           layer.appendChild(el);
+        }
+
+        let iconDiv = document.getElementById('icon-div-' + unit.id);
+        if (unit.sprite.startsWith('http') || unit.sprite.startsWith('data:')) {
+          iconDiv.innerHTML = `<img src="${unit.sprite}" style="width:45px;height:45px;object-fit:contain;">`;
+        } else {
+          iconDiv.innerText = unit.sprite;
         }
 
         document.getElementById('hp-fill-' + unit.id).style.width = hpPercent + '%';
@@ -390,7 +456,7 @@
 
         setTimeout(() => {
           if (span.parentNode) span.parentNode.removeChild(span);
-        }, 800);
+        }, 900);
       });
     }
   </script>
