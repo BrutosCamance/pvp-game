@@ -5,12 +5,15 @@
   <script src="/socket.io/socket.io.js"></script>
   <style>
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; background: radial-gradient(circle, #1a252f 0%, #0d1117 100%); color: white; margin: 0; padding: 10px; }
-    #app { max-width: 840px; margin: 0 auto; }
+    #app { max-width: 1120px; margin: 0 auto; }
     .hidden { display: none !important; }
     
+    .game-layout { display: flex; gap: 15px; justify-content: center; align-items: flex-start; flex-wrap: wrap; }
+    .main-game-area { flex: 1; min-width: 800px; max-width: 800px; }
+
     #board-container {
       position: relative; width: 800px; height: 500px; background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
-      border: 6px solid #1e8449; border-radius: 12px; margin: 20px auto; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      border: 6px solid #1e8449; border-radius: 12px; margin: 10px auto; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
       background-image: linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
       background-size: 100px 100px; 
     }
@@ -23,7 +26,7 @@
       align-items: center; justify-content: center; font-size: 38px;
       transition: left 0.4s ease-in-out, top 0.4s ease-in-out; z-index: 10;
     }
-    .unit img { width: 50px; height: 50px; object-fit: contain; }
+    .unit img, .menu-btn img { width: 40px; height: 40px; object-fit: contain; display: inline-block; vertical-align: middle; }
 
     .hp-bar-container { width: 65px; height: 6px; background: rgba(0,0,0,0.6); border-radius: 3px; overflow: hidden; margin-top: -2px; border: 1px solid rgba(255,255,255,0.2); }
     .hp-fill { height: 100%; background: #2ecc71; width: 100%; transition: width 0.3s; }
@@ -31,6 +34,16 @@
 
     .projectile { position: absolute; width: 14px; height: 14px; background: #f1c40f; border-radius: 50%; z-index: 15; box-shadow: 0 0 8px #f1c40f; transition: left 0.25s linear; }
     
+    .explosion {
+      position: absolute; width: 100px; height: 100px; background: radial-gradient(circle, #f39c12 0%, #e74c3c 60%, rgba(231,76,60,0) 100%);
+      border-radius: 50%; z-index: 30; animation: explodeAnim 0.5s ease-out forwards; pointer-events: none;
+    }
+    @keyframes explodeAnim {
+      0% { transform: scale(0.2); opacity: 1; }
+      50% { transform: scale(1.4); opacity: 0.9; }
+      100% { transform: scale(2); opacity: 0; }
+    }
+
     .floating-text {
       position: absolute; font-size: 13px; font-weight: bold; z-index: 25; text-shadow: 1px 1px 2px black;
       animation: floatUp 0.9s ease-out forwards;
@@ -47,7 +60,7 @@
 
     .panel { background: rgba(44, 62, 80, 0.95); padding: 20px; border-radius: 12px; margin-bottom: 10px; border: 1px solid #4e6d8c; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
     .menu-bar { display: flex; justify-content: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
-    .menu-btn { padding: 12px 18px; background: #34495e; border: 2px solid #7f8c8d; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold; color: white; transition: all 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.2); }
+    .menu-btn { padding: 10px 16px; background: #34495e; border: 2px solid #7f8c8d; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: bold; color: white; transition: all 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.2); }
     .menu-btn:hover { transform: translateY(-2px); border-color: #f1c40f; }
     .menu-btn.selected { border-color: #e74c3c; background: #d35400; box-shadow: 0 0 10px rgba(211, 84, 0, 0.6); }
     
@@ -56,6 +69,17 @@
 
     .player-status { padding: 12px; border-radius: 8px; background: #415b76; font-weight: bold; margin: 10px 0; font-size: 16px; }
     .ready-yes { background: #27ae60 !important; color: white; box-shadow: 0 0 15px rgba(39, 174, 96, 0.6); }
+
+    /* Live Chat Styles */
+    .chat-panel { width: 280px; height: 602px; display: flex; flex-direction: column; background: rgba(30, 42, 56, 0.95); border: 1px solid #4e6d8c; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); overflow: hidden; text-align: left; }
+    .chat-header { padding: 12px; background: #243342; font-weight: bold; border-bottom: 1px solid #4e6d8c; font-size: 14px; text-align: center; }
+    .chat-messages { flex: 1; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+    .chat-msg { background: rgba(0,0,0,0.25); padding: 6px 10px; border-radius: 6px; word-break: break-word; line-height: 1.3; }
+    .chat-msg span { font-weight: bold; color: #f1c40f; }
+    .chat-input-area { display: flex; padding: 10px; background: #243342; border-top: 1px solid #4e6d8c; gap: 6px; }
+    .chat-input-area input { flex: 1; padding: 8px; background: #2c3e50; border: 1px solid #7f8c8d; border-radius: 6px; color: white; font-size: 12px; outline: none; }
+    .chat-input-area button { padding: 8px 12px; background: #27ae60; border: none; border-radius: 6px; color: white; font-weight: bold; cursor: pointer; font-size: 12px; }
+    .chat-input-area button:hover { background: #229954; }
 
     .overlay-screen {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85);
@@ -81,18 +105,10 @@
       <div style="display: flex; gap: 20px; justify-content: center; margin-top: 20px; flex-wrap: wrap;">
         <div style="text-align: left; max-width: 380px;">
           <h3>Match Settings</h3>
-          <div class="settings-group">
-            <label>Starting Currency:</label>
-            <input type="number" id="setting-start" value="100" onchange="saveSettings()">
-          </div>
-          <div class="settings-group">
-            <label>Currency Gain:</label>
-            <input type="number" id="setting-amount" value="10" onchange="saveSettings()">
-          </div>
-          <div class="settings-group">
-            <label>Kill Reward:</label>
-            <input type="number" id="setting-kill" value="15" onchange="saveSettings()">
-          </div>
+          <div class="settings-group"><label>Starting Currency:</label><input type="number" id="setting-start" value="100" onchange="saveSettings()"></div>
+          <div class="settings-group"><label>Currency Gain:</label><input type="number" id="setting-amount" value="10" onchange="saveSettings()"></div>
+          <div class="settings-group"><label>Kill Reward:</label><input type="number" id="setting-kill" value="15" onchange="saveSettings()"></div>
+          <div class="settings-group"><label>Timer (Seconds):</label><input type="number" id="setting-duration" value="180" onchange="saveSettings()"></div>
         </div>
 
         <div style="text-align: left; max-width: 380px;">
@@ -109,10 +125,9 @@
       </div>
     </div>
 
-    <!-- LOBBY & FACTION SELECT -->
+    <!-- LOBBY -->
     <div id="lobby" class="hidden panel">
       <h2>Battle Lobby</h2>
-      
       <div style="margin: 10px 0;">
         <label><strong>Change Name:</strong></label>
         <input type="text" id="lobby-player-name" value="Player 1" onchange="updatePlayerName()" style="padding: 6px; border-radius: 4px; background: #2c3e50; color: white; border: 1px solid #7f8c8d; width: 150px; text-align: center;">
@@ -132,56 +147,69 @@
       <button class="menu-btn" onclick="exitToMenu()">Back to Main Menu</button>
     </div>
 
-    <!-- GAME BOARD -->
+    <!-- GAME BOARD & CHAT LAYOUT -->
     <div id="game" class="hidden">
-      <div class="panel" style="display: flex; justify-content: space-between; align-items: center;">
-        <div>
-          <p style="font-size: 16px; margin: 0;">
-            ☀️ <strong>Sun:</strong> <span id="sun-count" style="color:#f1c40f;">0</span> &nbsp;|&nbsp; 
-            🧠 <strong>Brains:</strong> <span id="brains-count" style="color:#e74c3c;">0</span>
-          </p>
+      <div class="game-layout">
+        <div class="main-game-area">
+          <div class="panel" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div>
+              <p style="font-size: 15px; margin: 0;">
+                ☀️ <strong>Sun:</strong> <span id="sun-count" style="color:#f1c40f;">0</span> &nbsp;|&nbsp; 
+                🧠 <strong>Brains:</strong> <span id="brains-count" style="color:#e74c3c;">0</span> &nbsp;|&nbsp;
+                ⏱️ <strong>Time:</strong> <span id="timer-count" style="color:#3498db;">0:00</span>
+              </p>
+            </div>
+            <div>
+              <button class="menu-btn" onclick="togglePause()">⏸ Pause</button>
+              <button class="menu-btn" onclick="exitToMenu()" style="border-color: #e74c3c;">🚪 Exit</button>
+            </div>
+          </div>
+
+          <!-- PLANTS MENU -->
+          <div id="plants-menu" class="menu-bar hidden panel" style="margin-bottom: 10px;">
+            <button id="btn-peashooter" class="menu-btn selected" onclick="selectUnit('peashooter')"><span id="lbl-peashooter">🌱</span> Peashooter <br><small>Cost: 25</small></button>
+            <button id="btn-wallnut" class="menu-btn" onclick="selectUnit('wallnut')"><span id="lbl-wallnut">🥔</span> Wall-nut <br><small>Cost: 50</small></button>
+            <button id="btn-sunflower" class="menu-btn" onclick="selectUnit('sunflower')"><span id="lbl-sunflower">🌻</span> Sunflower <br><small>Cost: 25 (Sun Gen)</small></button>
+            <button id="btn-chili" class="menu-btn" onclick="selectUnit('chili')"><span id="lbl-chili">🌶️</span> Hot Chili <br><small>Cost: 75 (2s Bomb)</small></button>
+          </div>
+
+          <!-- ZOMBIES MENU -->
+          <div id="zombies-menu" class="menu-bar hidden panel" style="margin-bottom: 10px;">
+            <button id="btn-zombie" class="menu-btn selected" onclick="selectUnit('zombie')"><span id="lbl-zombie">🧟</span> Basic Zombie <br><small>Cost: 25</small></button>
+            <button id="btn-tank" class="menu-btn" onclick="selectUnit('tank')"><span id="lbl-tank">👹</span> Tank Zombie <br><small>Cost: 50</small></button>
+            <button id="btn-runner" class="menu-btn" onclick="selectUnit('runner')"><span id="lbl-runner">🏃</span> Runner <br><small>Cost: 30 (Fast)</small></button>
+            <button id="btn-miner" class="menu-btn" onclick="selectUnit('miner')"><span id="lbl-miner">⛏️</span> Miner <br><small>Cost: 60 (Jumps)</small></button>
+          </div>
+
+          <div id="board-container" style="margin: 0 auto;">
+            <div id="plant-zone" class="hidden"></div>
+            <div id="zombie-zone" class="hidden"></div>
+
+            <div id="units-layer"></div>
+            <div class="click-grid" id="click-grid"></div>
+            
+            <div id="pause-screen" class="hidden overlay-screen">
+              <h1>Game Paused</h1>
+              <button class="menu-btn selected" onclick="togglePause()" style="margin-bottom: 10px;">Resume Game</button>
+              <button class="menu-btn" onclick="exitToMenu()">Quit to Menu</button>
+            </div>
+
+            <div id="gameover-screen" class="hidden overlay-screen">
+              <h1 id="winner-text" style="font-size: 42px; margin-bottom: 20px; text-shadow: 0 0 10px rgba(255,255,255,0.5);"></h1>
+              <button class="menu-btn selected" onclick="resetGame()" style="margin-bottom: 10px;">Play Again</button>
+              <button class="menu-btn" onclick="exitToMenu()">Main Menu</button>
+            </div>
+          </div>
         </div>
-        <div>
-          <button class="menu-btn" onclick="togglePause()">⏸ Pause</button>
-          <button class="menu-btn" onclick="exitToMenu()" style="border-color: #e74c3c;">🚪 Exit</button>
-        </div>
-      </div>
 
-      <!-- PLANTS MENU -->
-      <div id="plants-menu" class="menu-bar hidden panel">
-        <button id="btn-peashooter" class="menu-btn selected" onclick="selectUnit('peashooter')"><span id="lbl-peashooter">🌱</span> Peashooter <br><small>Cost: 25</small></button>
-        <button id="btn-wallnut" class="menu-btn" onclick="selectUnit('wallnut')"><span id="lbl-wallnut">🥔</span> Wall-nut <br><small>Cost: 50</small></button>
-        <button id="btn-sunflower" class="menu-btn" onclick="selectUnit('sunflower')"><span id="lbl-sunflower">🌻</span> Sunflower <br><small>Cost: 25 (Sun Gen)</small></button>
-        <button id="btn-chili" class="menu-btn" onclick="selectUnit('chili')"><span id="lbl-chili">🌶️</span> Hot Chili <br><small>Cost: 75 (Bomb)</small></button>
-      </div>
-
-      <!-- ZOMBIES MENU -->
-      <div id="zombies-menu" class="menu-bar hidden panel">
-        <button id="btn-zombie" class="menu-btn selected" onclick="selectUnit('zombie')"><span id="lbl-zombie">🧟</span> Basic Zombie <br><small>Cost: 25</small></button>
-        <button id="btn-tank" class="menu-btn" onclick="selectUnit('tank')"><span id="lbl-tank">👹</span> Tank Zombie <br><small>Cost: 50</small></button>
-        <button id="btn-runner" class="menu-btn" onclick="selectUnit('runner')"><span id="lbl-runner">🏃</span> Runner <br><small>Cost: 30 (Fast)</small></button>
-        <button id="btn-miner" class="menu-btn" onclick="selectUnit('miner')"><span id="lbl-miner">⛏️</span> Miner <br><small>Cost: 60 (Jumps)</small></button>
-      </div>
-
-      <div id="board-container">
-        <div id="plant-zone" class="hidden"></div>
-        <div id="zombie-zone" class="hidden"></div>
-
-        <div id="units-layer"></div>
-        <div class="click-grid" id="click-grid"></div>
-        
-        <!-- PAUSE SCREEN -->
-        <div id="pause-screen" class="hidden overlay-screen">
-          <h1>Game Paused</h1>
-          <button class="menu-btn selected" onclick="togglePause()" style="margin-bottom: 10px;">Resume Game</button>
-          <button class="menu-btn" onclick="exitToMenu()">Quit to Menu</button>
-        </div>
-
-        <!-- GAMEOVER SCREEN -->
-        <div id="gameover-screen" class="hidden overlay-screen">
-          <h1 id="winner-text" style="font-size: 42px; margin-bottom: 20px; text-shadow: 0 0 10px rgba(255,255,255,0.5);"></h1>
-          <button class="menu-btn selected" onclick="resetGame()" style="margin-bottom: 10px;">Play Again</button>
-          <button class="menu-btn" onclick="exitToMenu()">Main Menu</button>
+        <!-- LIVE CHAT BOX -->
+        <div class="chat-panel">
+          <div class="chat-header">💬 Live Match Chat</div>
+          <div class="chat-messages" id="chat-messages"></div>
+          <div class="chat-input-area">
+            <input type="text" id="chat-input" placeholder="Type a message..." onkeydown="handleChatKey(event)">
+            <button onclick="sendChatMessage()">Send</button>
+          </div>
         </div>
       </div>
     </div>
@@ -218,6 +246,14 @@
       }
     }
 
+    function renderIcon(val) {
+      if (!val) return '❓';
+      if (val.startsWith('http://') || val.startsWith('https://') || val.startsWith('data:')) {
+        return `<img src="${val}">`;
+      }
+      return val;
+    }
+
     function saveSettings() {
       let settings = {
         startingSun: parseInt(document.getElementById('setting-start').value) || 100,
@@ -225,6 +261,7 @@
         generationInterval: 1000,
         generationAmount: parseInt(document.getElementById('setting-amount').value) || 10,
         killReward: parseInt(document.getElementById('setting-kill').value) || 15,
+        matchDuration: parseInt(document.getElementById('setting-duration').value) || 180,
         icons: {
           peashooter: document.getElementById('icon-peashooter').value || '🌱',
           wallnut: document.getElementById('icon-wallnut').value || '🥔',
@@ -237,12 +274,10 @@
         }
       };
 
-      // Sync button labels
       ['peashooter', 'wallnut', 'sunflower', 'chili', 'zombie', 'tank', 'runner', 'miner'].forEach(u => {
         let lbl = document.getElementById('lbl-' + u);
         if (lbl) {
-          let val = settings.icons[u];
-          lbl.innerHTML = val.startsWith('http') || val.startsWith('data:') ? `<img src="${val}" style="width:20px;height:20px;vertical-align:middle;">` : val;
+          lbl.innerHTML = renderIcon(settings.icons[u]);
         }
       });
 
@@ -258,18 +293,9 @@
       socket.emit('updateNames', { role: myRole, name: name });
     }
 
-    function goToLobby() {
-      socket.emit('goToLobby');
-    }
-
-    function exitToMenu() {
-      myRole = '';
-      socket.emit('exitGame');
-    }
-
-    function togglePause() {
-      socket.emit('pauseGame');
-    }
+    function goToLobby() { socket.emit('goToLobby'); }
+    function exitToMenu() { myRole = ''; socket.emit('exitGame'); }
+    function togglePause() { socket.emit('pauseGame'); }
 
     function joinRole(role) {
       myRole = role;
@@ -283,10 +309,7 @@
       playSound('spawn');
     }
 
-    function setReady() {
-      socket.emit('ready', myRole);
-      playSound('spawn');
-    }
+    function setReady() { socket.emit('ready', myRole); playSound('spawn'); }
 
     function selectUnit(unitName) {
       selectedUnit = unitName;
@@ -295,12 +318,19 @@
       playSound('spawn');
     }
 
-    function attemptSpawn(x, y) {
-      socket.emit('spawn', { role: myRole, x: x, y: y, unitType: selectedUnit });
+    function attemptSpawn(x, y) { socket.emit('spawn', { role: myRole, x: x, y: y, unitType: selectedUnit }); }
+    function resetGame() { socket.emit('reset'); }
+
+    function sendChatMessage() {
+      let input = document.getElementById('chat-input');
+      let text = input.value.trim();
+      if (!text) return;
+      socket.emit('sendChat', { role: myRole, text: text });
+      input.value = '';
     }
 
-    function resetGame() {
-      socket.emit('reset');
+    function handleChatKey(e) {
+      if (e.key === 'Enter') sendChatMessage();
     }
 
     function buildClickGrid() {
@@ -327,7 +357,6 @@
       if (state.status === 'lobby') {
         let p1El = document.getElementById('p1-status');
         let p2El = document.getElementById('p2-status');
-        
         let p1Name = state.p1.name || 'Plants (P1)';
         let p2Name = state.p2.name || 'Zombies (P2)';
 
@@ -354,19 +383,37 @@
         document.getElementById('sun-count').innerText = state.sun;
         document.getElementById('brains-count').innerText = state.brains;
 
+        // Calculate countdown timer
+        let totalSecs = state.settings.matchDuration || 180;
+        let elapsed = Math.floor((Date.now() - state.startTime) / 1000);
+        let remaining = Math.max(0, totalSecs - elapsed);
+        let mins = Math.floor(remaining / 60);
+        let secs = remaining % 60;
+        document.getElementById('timer-count').innerText = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+
         updateUnits(state.board);
-        if (state.projectiles && state.projectiles.length > 0) {
-          drawProjectiles(state.projectiles);
-        }
-        if (state.floatingTexts && state.floatingTexts.length > 0) {
-          drawFloatingTexts(state.floatingTexts);
-        }
+        if (state.projectiles && state.projectiles.length > 0) drawProjectiles(state.projectiles);
+        if (state.floatingTexts && state.floatingTexts.length > 0) drawFloatingTexts(state.floatingTexts);
+        if (state.explosions && state.explosions.length > 0) drawExplosions(state.explosions);
+        updateChat(state.chatMessages);
       }
 
       if (state.status === 'gameover') {
         document.getElementById('winner-text').innerText = "🏆 " + state.winner;
       }
     });
+
+    function updateChat(messages) {
+      const container = document.getElementById('chat-messages');
+      container.innerHTML = '';
+      messages.forEach(m => {
+        let div = document.createElement('div');
+        div.className = 'chat-msg';
+        div.innerHTML = `<span>${m.sender}:</span> ${m.text}`;
+        container.appendChild(div);
+      });
+      container.scrollTop = container.scrollHeight;
+    }
 
     function updateUnits(serverUnits) {
       const layer = document.getElementById('units-layer');
@@ -409,11 +456,7 @@
         }
 
         let iconDiv = document.getElementById('icon-div-' + unit.id);
-        if (unit.sprite.startsWith('http') || unit.sprite.startsWith('data:')) {
-          iconDiv.innerHTML = `<img src="${unit.sprite}" style="width:45px;height:45px;object-fit:contain;">`;
-        } else {
-          iconDiv.innerText = unit.sprite;
-        }
+        iconDiv.innerHTML = renderIcon(unit.sprite);
 
         document.getElementById('hp-fill-' + unit.id).style.width = hpPercent + '%';
         document.getElementById('hp-text-' + unit.id).innerText = unit.hp + ' HP';
@@ -425,21 +468,26 @@
     function drawProjectiles(projectiles) {
       const layer = document.getElementById('units-layer');
       playSound('shoot');
-      
       projectiles.forEach(p => {
         let dot = document.createElement('div');
         dot.className = 'projectile';
         dot.style.left = (p.x * 100 + 75) + 'px'; 
         dot.style.top = (p.y * 100 + 35) + 'px';
         layer.appendChild(dot);
-        
-        setTimeout(() => { 
-          dot.style.left = (p.targetX * 100 + 20) + 'px'; 
-        }, 30);
-        
-        setTimeout(() => { 
-          if (dot.parentNode) dot.parentNode.removeChild(dot); 
-        }, 280);
+        setTimeout(() => { dot.style.left = (p.targetX * 100 + 20) + 'px'; }, 30);
+        setTimeout(() => { if (dot.parentNode) dot.parentNode.removeChild(dot); }, 280);
+      });
+    }
+
+    function drawExplosions(explosions) {
+      const layer = document.getElementById('units-layer');
+      explosions.forEach(e => {
+        let exp = document.createElement('div');
+        exp.className = 'explosion';
+        exp.style.left = (e.x * 100) + 'px';
+        exp.style.top = (e.y * 100) + 'px';
+        layer.appendChild(exp);
+        setTimeout(() => { if (exp.parentNode) exp.parentNode.removeChild(exp); }, 500);
       });
     }
 
@@ -453,10 +501,7 @@
         span.style.left = (ft.x * 100 + 10) + 'px';
         span.style.top = (ft.y * 100 + 10) + 'px';
         layer.appendChild(span);
-
-        setTimeout(() => {
-          if (span.parentNode) span.parentNode.removeChild(span);
-        }, 900);
+        setTimeout(() => { if (span.parentNode) span.parentNode.removeChild(span); }, 900);
       });
     }
   </script>
