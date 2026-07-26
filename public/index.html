@@ -24,13 +24,12 @@
     .unit {
       position: absolute; width: 100px; height: 100px; display: flex; flex-direction: column;
       align-items: center; justify-content: center; font-size: 38px;
-      transition: left 0.4s ease-in-out, top 0.4s ease-in-out; z-index: 10;
+      /* Smooth sliding glide transition for units */
+      transition: left 0.8s cubic-bezier(0.25, 1, 0.5, 1), top 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+      z-index: 10;
     }
     
-    /* Standard / Menu buttons keep normal size */
     .menu-btn img { width: 40px; height: 40px; object-fit: contain; display: inline-block; vertical-align: middle; }
-    
-    /* In-game board units using images are scaled up by 1.5x (60px) */
     .unit img { width: 60px; height: 60px; object-fit: contain; display: inline-block; vertical-align: middle; }
 
     .hp-bar-container { width: 65px; height: 6px; background: rgba(0,0,0,0.6); border-radius: 3px; overflow: hidden; margin-top: -2px; border: 1px solid rgba(255,255,255,0.2); }
@@ -81,7 +80,6 @@
     .chat-messages { flex: 1; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
     .chat-msg { background: rgba(0,0,0,0.25); padding: 6px 10px; border-radius: 6px; word-break: break-word; line-height: 1.3; }
     
-    /* Distinct Colors for Chat Names */
     .chat-name-plants { font-weight: bold; color: #2ecc71; text-shadow: 0 0 5px rgba(46, 204, 113, 0.4); }
     .chat-name-zombies { font-weight: bold; color: #e74c3c; text-shadow: 0 0 5px rgba(231, 76, 60, 0.4); }
 
@@ -98,7 +96,7 @@
 </head>
 <body>
   <div id="app">
-    <h1>🌱 PvZ Arena: Ultimate Temuu Edition by Lawrence🧟</h1>
+    <h1>🌱 PvZ Arena: Ultimate Temu Edition BY LAWNRECEz🧟</h1>
     
     <!-- MAIN MENU -->
     <div id="main-menu" class="panel">
